@@ -12,6 +12,7 @@
         mkdir -p $out/bin
         cat > $out/bin/wezterm <<EOF
         #!${pkgs.bash}/bin/bash
+        export WEZTERM_SHELL_INTEGRATION="${./shell-integration.sh}"
         exec ${nixgl.packages.${system}.nixGLIntel}/bin/nixGLIntel \
           ${wezterm.packages.${system}.default}/bin/wezterm \
           --config-file ${./wezterm.lua} "\$@"
