@@ -4,14 +4,19 @@ local wezterm = require("wezterm")
 -- Log warnings or generate errors if we define an invalid configuration option
 local config = wezterm.config_builder()
 
--- Format window title to prefer explicit tab titles over process names
-wezterm.on('format-window-title', function(tab, pane, tabs, panes, config)
-  -- Use explicit tab title if set, otherwise fall back to process name
-  if tab.tab_title and tab.tab_title ~= "" then
-    return tab.tab_title
-  end
-  -- Fallback to active pane's title (process name)
-  return tab.active_pane.title
+wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_width)
+  local title = tab.tab_title ~= "" and tab.tab_title or tab.active_pane.title
+
+  return {
+    { Foreground = { Color = tab.is_active and '#d3869b' or '#a89984' } },
+    { Text = ' ' .. (tab.tab_index + 1) .. ': ' },
+    { Attribute = { Italic = true } },
+    { Attribute = { Intensity = "Bold" } },
+    { Foreground = { Color = tab.is_active and '#7daea3' or '#a89984' } },
+    { Text = title .. ' ' },
+    { Attribute = { Italic = false } },
+    { Attribute = { Intensity = "Normal" } },
+  }
 end)
 
 wezterm.on('update-right-status', function(window, pane)
@@ -27,14 +32,16 @@ wezterm.on('update-right-status', function(window, pane)
     table.insert(status, { Attribute = { Intensity = "Normal" } })
   end
 
-  table.insert(status, { Foreground = { Color = '#89b482' } })
+  table.insert(status, { Attribute = { Intensity = "Bold" } })
+  table.insert(status, { Foreground = { Color = '#a89984' } })
   table.insert(status, { Text = '[ ' })
   table.insert(status, { Attribute = { Italic = true } })
-  table.insert(status, { Attribute = { Intensity = "Bold" } })
+  table.insert(status, { Foreground = { Color = '#89b482' } })
   table.insert(status, { Text = window:active_workspace() })
   table.insert(status, { Attribute = { Italic = false } })
-  table.insert(status, { Attribute = { Intensity = "Normal" } })
+  table.insert(status, { Foreground = { Color = '#a89984' } })
   table.insert(status, { Text = ' ]' })
+  table.insert(status, { Attribute = { Intensity = "Normal" } })
 
   window:set_right_status(wezterm.format(status))
 end)
