@@ -15,10 +15,28 @@ wezterm.on('format-window-title', function(tab, pane, tabs, panes, config)
 end)
 
 wezterm.on('update-right-status', function(window, pane)
-  window:set_right_status(wezterm.format({
-    { Foreground = { Color = '#89b482' } },
-    { Text = window:active_workspace() },
-  }))
+  local key_table = window:active_key_table()
+  local status = {}
+
+  if key_table then
+    table.insert(status, { Attribute = { Italic = true } })
+    table.insert(status, { Attribute = { Intensity = "Bold" } })
+    table.insert(status, { Foreground = { Color = '#ea6962' } })
+    table.insert(status, { Text = key_table .. ' ' })
+    table.insert(status, { Attribute = { Italic = false } })
+    table.insert(status, { Attribute = { Intensity = "Normal" } })
+  end
+
+  table.insert(status, { Foreground = { Color = '#89b482' } })
+  table.insert(status, { Text = '[ ' })
+  table.insert(status, { Attribute = { Italic = true } })
+  table.insert(status, { Attribute = { Intensity = "Bold" } })
+  table.insert(status, { Text = window:active_workspace() })
+  table.insert(status, { Attribute = { Italic = false } })
+  table.insert(status, { Attribute = { Intensity = "Normal" } })
+  table.insert(status, { Text = ' ]' })
+
+  window:set_right_status(wezterm.format(status))
 end)
 
 --
