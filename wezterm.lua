@@ -58,9 +58,6 @@ config.front_end = "OpenGL"
 config.max_fps = 144
 config.animation_fps = 144
 
--- Spawn a zsh shell in login mode
-config.default_prog = { os.getenv("HOME") .. '/.nix-profile/bin/zsh', '-l' }
-
 -- Font configuration
 config.font = wezterm.font("Fisa Code")
 config.font_size = 10.0
@@ -383,7 +380,7 @@ config.key_tables = {
 			key = "v",
 			action = wezterm.action.SplitPane({
 				direction = "Left",
-				size = { Percent = 50 },
+				size = { Percent = 28 },
 			}),
 		},
 		{ -- Close current pane
