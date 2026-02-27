@@ -153,6 +153,41 @@ config.colors.tab_bar = {
 }
 
 --
+-- Pane geometry helpers for sidebar/scratchpad management.
+--
+
+-- Returns the bottommost pane in the tab, or nil if no bottom split exists.
+local function find_bottom_pane(tab)
+  local panes = tab:panes_with_info()
+  local bottom = nil
+  for _, p in ipairs(panes) do
+    if not bottom or p.top > bottom.top then
+      bottom = p
+    end
+  end
+  return (bottom and bottom.top > 0) and bottom.pane or nil
+end
+
+-- Returns the leftmost sidebar pane in the tab, or nil if no left split exists.
+local function find_left_pane(tab)
+  local panes = tab:panes_with_info()
+  local min_left, max_left = math.huge, 0
+  for _, p in ipairs(panes) do
+    if p.left < min_left then min_left = p.left end
+    if p.left > max_left then max_left = p.left end
+  end
+  if max_left == 0 then return nil end
+  -- Among panes at min_left, pick the one closest to the top
+  local found = nil
+  for _, p in ipairs(panes) do
+    if p.left == min_left and (not found or p.top < found.top) then
+      found = p
+    end
+  end
+  return found and found.pane or nil
+end
+
+--
 -- Keymaps configuration.
 --
 
@@ -191,6 +226,77 @@ config.keys = {
 			name = "pane_mode",
 			one_shot = true,
 		}),
+	},
+
+	--
+	-- Scratchpad / sidebar panes
+	--
+
+	{ -- Focus or create bottom 30% scratchpad pane
+		key = "PageUp",
+		mods = "ALT",
+		action = wezterm.action_callback(function(window, pane)
+			local tab = window:active_tab()
+			local bottom = find_bottom_pane(tab)
+			if bottom then
+				bottom:activate()
+			else
+				window:perform_action(
+					wezterm.action.SplitPane({
+						direction = "Down",
+						size = { Percent = 30 },
+						command = { args = { "tmux", "new-session", "-A", "-s", "wezterm-bottom-" .. tab:tab_id() } },
+					}),
+					pane
+				)
+			end
+		end),
+	},
+	{ -- Close bottom scratchpad pane
+		key = "PageDown",
+		mods = "ALT",
+		action = wezterm.action_callback(function(window, pane)
+			local bottom = find_bottom_pane(window:active_tab())
+			if bottom then
+				window:perform_action(
+					wezterm.action.CloseCurrentPane({ confirm = false }),
+					bottom
+				)
+			end
+		end),
+	},
+	{ -- Focus or create left 28% sidebar pane
+		key = "End",
+		mods = "ALT",
+		action = wezterm.action_callback(function(window, pane)
+			local tab = window:active_tab()
+			local left = find_left_pane(tab)
+			if left then
+				left:activate()
+			else
+				window:perform_action(
+					wezterm.action.SplitPane({
+						direction = "Left",
+						size = { Percent = 28 },
+						command = { args = { "tmux", "new-session", "-A", "-s", "wezterm-left-" .. tab:tab_id() } },
+					}),
+					pane
+				)
+			end
+		end),
+	},
+	{ -- Close left sidebar pane
+		key = "Home",
+		mods = "ALT",
+		action = wezterm.action_callback(function(window, pane)
+			local left = find_left_pane(window:active_tab())
+			if left then
+				window:perform_action(
+					wezterm.action.CloseCurrentPane({ confirm = false }),
+					left
+				)
+			end
+		end),
 	},
 
 	--
@@ -343,7 +449,12 @@ config.key_tables = {
 		},
 		{ -- Close current tab
 			key = "q",
-			action = wezterm.action.CloseCurrentTab({ confirm = false }),
+			action = wezterm.action_callback(function(window, pane)
+				local tab_id = window:active_tab():tab_id()
+				wezterm.run_child_process({ "tmux", "kill-session", "-t", "wezterm-bottom-" .. tab_id })
+				wezterm.run_child_process({ "tmux", "kill-session", "-t", "wezterm-left-" .. tab_id })
+				window:perform_action(wezterm.action.CloseCurrentTab({ confirm = false }), pane)
+			end),
 		},
 		{ -- Rename current tab
 			key = "r",
@@ -369,23 +480,28 @@ config.key_tables = {
 
 	-- Pane management mode (LEADER + p)
 	pane_mode = {
-		{ -- Split pane vertically (bottom, 30%)
+		{ -- Split pane vertically (bottom, 50%)
 			key = "s",
 			action = wezterm.action.SplitPane({
 				direction = "Down",
-				size = { Percent = 30 },
+				size = { Percent = 50 },
 			}),
 		},
-		{ -- Split pane horizontally (left, 28%)
+		{ -- Split pane horizontally (left, 50%)
 			key = "v",
 			action = wezterm.action.SplitPane({
 				direction = "Left",
-				size = { Percent = 28 },
+				size = { Percent = 50 },
 			}),
 		},
-		{ -- Close current pane
+		{ -- Close current pane (no-op if last pane, use tab_mode q to close the tab)
 			key = "q",
-			action = wezterm.action.CloseCurrentPane({ confirm = false }),
+			action = wezterm.action_callback(function(window, pane)
+				local tab = window:active_tab()
+				if #tab:panes() > 1 then
+					window:perform_action(wezterm.action.CloseCurrentPane({ confirm = false }), pane)
+				end
+			end),
 		},
 		{ -- Maximize/zoom pane
 			key = "m",
