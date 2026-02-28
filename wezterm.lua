@@ -258,6 +258,7 @@ config.keys = {
 		action = wezterm.action_callback(function(window, pane)
 			local bottom = find_bottom_pane(window:active_tab())
 			if bottom then
+				bottom:activate()
 				window:perform_action(
 					wezterm.action.CloseCurrentPane({ confirm = false }),
 					bottom
@@ -291,6 +292,7 @@ config.keys = {
 		action = wezterm.action_callback(function(window, pane)
 			local left = find_left_pane(window:active_tab())
 			if left then
+				left:activate()
 				window:perform_action(
 					wezterm.action.CloseCurrentPane({ confirm = false }),
 					left
