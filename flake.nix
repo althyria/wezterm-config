@@ -9,12 +9,20 @@
     in {
       packages.${system}.default =
         let
-          deps = [ pkgs.tmux ];
-          wrapper = pkgs.runCommand "wezterm" {} ''
+          wtmuxWrapper = pkgs.runCommand "wtmux" {} ''
+            mkdir -p $out/bin
+            cat > $out/bin/wtmux <<EOF
+            #!${pkgs.bash}/bin/bash
+            exec ${pkgs.tmux}/bin/tmux -f ${./tmux.conf} -L wezterm "\$@"
+            EOF
+            chmod +x $out/bin/wtmux
+          '';
+          weztermWrapper = pkgs.runCommand "wezterm" {} ''
             mkdir -p $out/bin
             cat > $out/bin/wezterm <<EOF
             #!${pkgs.bash}/bin/bash
             export WEZTERM_SHELL_INTEGRATION="${./shell-integration.sh}"
+            export PATH="${wtmuxWrapper}/bin:\$PATH"
             exec ${wezterm.packages.${system}.default}/bin/wezterm \
               --config-file ${./wezterm.lua} "\$@"
             EOF
@@ -23,7 +31,7 @@
         in
           pkgs.symlinkJoin {
             name = "wezterm";
-            paths = [ wrapper ] ++ deps;
+            paths = [ weztermWrapper wtmuxWrapper ];
           };
     };
 }

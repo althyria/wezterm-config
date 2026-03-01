@@ -4,6 +4,45 @@ local wezterm = require("wezterm")
 -- Log warnings or generate errors if we define an invalid configuration option
 local config = wezterm.config_builder()
 
+--
+-- Pane geometry helpers for sidebar/scratchpad management.
+--
+
+-- Returns the bottommost pane in the tab, or nil if no bottom split exists.
+local function find_bottom_pane(tab)
+  local panes = tab:panes_with_info()
+  local bottom = nil
+  for _, p in ipairs(panes) do
+    if not bottom or p.top > bottom.top then
+      bottom = p
+    end
+  end
+  return (bottom and bottom.top > 0) and bottom.pane or nil
+end
+
+-- Returns the leftmost sidebar pane in the tab, or nil if no left split exists.
+local function find_left_pane(tab)
+  local panes = tab:panes_with_info()
+  local min_left, max_left = math.huge, 0
+  for _, p in ipairs(panes) do
+    if p.left < min_left then min_left = p.left end
+    if p.left > max_left then max_left = p.left end
+  end
+  if max_left == 0 then return nil end
+  -- Among panes at min_left, pick the one closest to the top
+  local found = nil
+  for _, p in ipairs(panes) do
+    if p.left == min_left and (not found or p.top < found.top) then
+      found = p
+    end
+  end
+  return found and found.pane or nil
+end
+
+--
+-- Event handlers.
+--
+
 wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_width)
   local title = tab.tab_title ~= "" and tab.tab_title or tab.active_pane.title
 
@@ -53,7 +92,7 @@ end)
 -- Do not check for or show window with update information
 config.check_for_updates = false
 
--- Improve wezterm graphical performance 
+-- Improve wezterm graphical performance
 config.front_end = "OpenGL"
 config.max_fps = 144
 config.animation_fps = 144
@@ -110,7 +149,7 @@ config.window_padding = {
 }
 
 --
--- Tab bar configuration options.
+-- Tab bar configuration.
 --
 
 -- Disable modern tab bar
@@ -151,41 +190,6 @@ config.colors.tab_bar = {
 		italic = true,
 	},
 }
-
---
--- Pane geometry helpers for sidebar/scratchpad management.
---
-
--- Returns the bottommost pane in the tab, or nil if no bottom split exists.
-local function find_bottom_pane(tab)
-  local panes = tab:panes_with_info()
-  local bottom = nil
-  for _, p in ipairs(panes) do
-    if not bottom or p.top > bottom.top then
-      bottom = p
-    end
-  end
-  return (bottom and bottom.top > 0) and bottom.pane or nil
-end
-
--- Returns the leftmost sidebar pane in the tab, or nil if no left split exists.
-local function find_left_pane(tab)
-  local panes = tab:panes_with_info()
-  local min_left, max_left = math.huge, 0
-  for _, p in ipairs(panes) do
-    if p.left < min_left then min_left = p.left end
-    if p.left > max_left then max_left = p.left end
-  end
-  if max_left == 0 then return nil end
-  -- Among panes at min_left, pick the one closest to the top
-  local found = nil
-  for _, p in ipairs(panes) do
-    if p.left == min_left and (not found or p.top < found.top) then
-      found = p
-    end
-  end
-  return found and found.pane or nil
-end
 
 --
 -- Keymaps configuration.
@@ -245,7 +249,7 @@ config.keys = {
 					wezterm.action.SplitPane({
 						direction = "Down",
 						size = { Percent = 30 },
-						command = { args = { "tmux", "new-session", "-A", "-s", "wezterm-bottom-" .. tab:tab_id() } },
+						command = { args = { "wtmux", "new-session", "-A", "-s", "wezterm-bottom-" .. tab:tab_id() } },
 					}),
 					pane
 				)
@@ -279,7 +283,7 @@ config.keys = {
 					wezterm.action.SplitPane({
 						direction = "Left",
 						size = { Percent = 28 },
-						command = { args = { "tmux", "new-session", "-A", "-s", "wezterm-left-" .. tab:tab_id() } },
+						command = { args = { "wtmux", "new-session", "-A", "-s", "wezterm-left-" .. tab:tab_id() } },
 					}),
 					pane
 				)
@@ -320,37 +324,36 @@ config.keys = {
 		mods = "ALT",
 		action = wezterm.action.ActivatePaneDirection("Prev"),
 	},
-
 	{ -- Focus next pane
 		key = "DownArrow",
 		mods = "ALT",
 		action = wezterm.action.ActivatePaneDirection("Next"),
 	},
 
-  ---
-  --- Rezising
-  ---
+	--
+	-- Resizing
+	--
 
-  {
-    key = "LeftArrow",
-    mods = "ALT|SHIFT",
-    action = wezterm.action.AdjustPaneSize { "Left", 5 },
-  },
-  {
-    key = "RightArrow",
-    mods = "ALT|SHIFT",
-    action = wezterm.action.AdjustPaneSize { "Right", 5 },
-  },
-  {
-    key = "UpArrow",
-    mods = "ALT|SHIFT",
-    action = wezterm.action.AdjustPaneSize { "Up", 5 },
-  },
-  {
-    key = "DownArrow",
-    mods = "ALT|SHIFT",
-    action = wezterm.action.AdjustPaneSize { "Down", 5 },
-  },
+	{
+		key = "LeftArrow",
+		mods = "ALT|SHIFT",
+		action = wezterm.action.AdjustPaneSize { "Left", 5 },
+	},
+	{
+		key = "RightArrow",
+		mods = "ALT|SHIFT",
+		action = wezterm.action.AdjustPaneSize { "Right", 5 },
+	},
+	{
+		key = "UpArrow",
+		mods = "ALT|SHIFT",
+		action = wezterm.action.AdjustPaneSize { "Up", 5 },
+	},
+	{
+		key = "DownArrow",
+		mods = "ALT|SHIFT",
+		action = wezterm.action.AdjustPaneSize { "Down", 5 },
+	},
 
 	{ -- Focus largest (master) pane
 		key = "Delete",
@@ -379,10 +382,18 @@ config.keys = {
 	-- Copy / Paste
 	--
 
-	{ -- Enter copy mode
+	{ -- Enter copy mode; passthrough to tmux if the pane is running tmux
 		key = "c",
 		mods = "LEADER",
-		action = wezterm.action.ActivateCopyMode,
+		action = wezterm.action_callback(function(window, pane)
+			local title = pane:get_title()
+			if title and title:match("tmux") then
+				-- \x02 = Ctrl+b (default tmux prefix), then [ to enter copy mode
+				window:perform_action(wezterm.action.SendString("\x02["), pane)
+			else
+				window:perform_action(wezterm.action.ActivateCopyMode, pane)
+			end
+		end),
 	},
 
 	{ -- Paste from clipboard
@@ -403,11 +414,11 @@ config.keys = {
 }
 
 --
--- Key table definitions for modal keybinding namespaces
+-- Key table definitions for modal keybinding namespaces.
 --
 
 config.key_tables = {
-  -- Domain management mode (LEADER + d)
+  -- Workspace management mode (LEADER + w)
   workspace_mode = {
    { -- (d)efault
       key = "d",
@@ -453,8 +464,8 @@ config.key_tables = {
 			key = "q",
 			action = wezterm.action_callback(function(window, pane)
 				local tab_id = window:active_tab():tab_id()
-				wezterm.run_child_process({ "tmux", "kill-session", "-t", "wezterm-bottom-" .. tab_id })
-				wezterm.run_child_process({ "tmux", "kill-session", "-t", "wezterm-left-" .. tab_id })
+				wezterm.run_child_process({ "wtmux", "kill-session", "-t", "wezterm-bottom-" .. tab_id })
+				wezterm.run_child_process({ "wtmux", "kill-session", "-t", "wezterm-left-" .. tab_id })
 				window:perform_action(wezterm.action.CloseCurrentTab({ confirm = false }), pane)
 			end),
 		},
@@ -476,8 +487,8 @@ config.key_tables = {
 				end
 			end),
 		},
-    -- Exit back to default state
-    { key = "Escape", action = "PopKeyTable" },
+		-- Exit back to default state
+		{ key = "Escape", action = "PopKeyTable" },
 	},
 
 	-- Pane management mode (LEADER + p)
@@ -509,8 +520,8 @@ config.key_tables = {
 			key = "m",
 			action = wezterm.action.TogglePaneZoomState,
 		},
-    -- Exit back to default state
-    { key = "Escape", action = "PopKeyTable" },
+		-- Exit back to default state
+		{ key = "Escape", action = "PopKeyTable" },
 	},
 }
 
