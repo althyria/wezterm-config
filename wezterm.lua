@@ -93,9 +93,9 @@ end)
 config.check_for_updates = false
 
 -- Improve wezterm graphical performance
-config.front_end = "OpenGL"
-config.max_fps = 144
-config.animation_fps = 144
+config.front_end = "WebGpu"
+config.max_fps = 60
+config.animation_fps = 30
 
 -- Font configuration
 config.font = wezterm.font("Fisa Code")
@@ -430,6 +430,12 @@ config.key_tables = {
       key = "s",
       action = wezterm.action.SwitchToWorkspace {
         name = "sysadmin",
+      }
+    },
+    { -- (e)mail
+      key = "e",
+      action = wezterm.action.SwitchToWorkspace {
+        name = "email",
       }
     },
     { -- (c)hat
