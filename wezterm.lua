@@ -101,12 +101,6 @@ config.animation_fps = 30
 config.font = wezterm.font("Fisa Code")
 config.font_size = 10.0
 
--- Setup our persistent domains
-config.unix_domains = {
-  { name = 'unix', }
-}
-config.default_gui_startup_args = { 'connect', 'unix' }
-
 -- Gruvbox Material Dark color scheme
 config.colors = {
 	foreground = "#D4BE98",
@@ -418,48 +412,6 @@ config.keys = {
 --
 
 config.key_tables = {
-  -- Workspace management mode (LEADER + w)
-  workspace_mode = {
-   { -- (d)efault
-      key = "d",
-      action = wezterm.action.SwitchToWorkspace {
-        name = "default",
-      }
-   },
-   { -- (s)ysadmin
-      key = "s",
-      action = wezterm.action.SwitchToWorkspace {
-        name = "sysadmin",
-      }
-    },
-    { -- (e)mail
-      key = "e",
-      action = wezterm.action.SwitchToWorkspace {
-        name = "email",
-      }
-    },
-    { -- (c)hat
-      key = "c",
-      action = wezterm.action.SwitchToWorkspace {
-        name = "chat",
-      }
-    },
-    { -- (m)edia
-      key = "m",
-      action = wezterm.action.SwitchToWorkspace {
-        name = "media",
-      }
-    },
-    { -- (a)cademics
-      key = "a",
-      action = wezterm.action.SwitchToWorkspace {
-        name = "academics",
-      }
-    },
-    -- Exit back to default state
-    { key = "Escape", action = "PopKeyTable" },
-  },
-
 	-- Tab management mode (LEADER + t)
 	tab_mode = {
 		{ -- Create new tab
