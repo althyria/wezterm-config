@@ -58,33 +58,6 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_wid
   }
 end)
 
-wezterm.on('update-right-status', function(window, pane)
-  local key_table = window:active_key_table()
-  local status = {}
-
-  if key_table then
-    table.insert(status, { Attribute = { Italic = true } })
-    table.insert(status, { Attribute = { Intensity = "Bold" } })
-    table.insert(status, { Foreground = { Color = '#ea6962' } })
-    table.insert(status, { Text = key_table .. ' ' })
-    table.insert(status, { Attribute = { Italic = false } })
-    table.insert(status, { Attribute = { Intensity = "Normal" } })
-  end
-
-  table.insert(status, { Attribute = { Intensity = "Bold" } })
-  table.insert(status, { Foreground = { Color = '#a89984' } })
-  table.insert(status, { Text = '[ ' })
-  table.insert(status, { Attribute = { Italic = true } })
-  table.insert(status, { Foreground = { Color = '#89b482' } })
-  table.insert(status, { Text = window:active_workspace() })
-  table.insert(status, { Attribute = { Italic = false } })
-  table.insert(status, { Foreground = { Color = '#a89984' } })
-  table.insert(status, { Text = ' ]' })
-  table.insert(status, { Attribute = { Intensity = "Normal" } })
-
-  window:set_right_status(wezterm.format(status))
-end)
-
 --
 -- General configuration options.
 --
